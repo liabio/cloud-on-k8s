@@ -1,6 +1,7 @@
 // Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
 // or more contributor license agreements. Licensed under the Elastic License;
 // you may not use this file except in compliance with the Elastic License.
+// +build beat e2e
 
 package beat
 
@@ -24,8 +25,8 @@ import (
 	"github.com/elastic/cloud-on-k8s/test/e2e/test/helper"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/rand"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -223,7 +224,7 @@ func runBeatRecipe(
 	t *testing.T,
 	fileName string,
 	customize func(builder beat.Builder) beat.Builder,
-	additionalObjects ...runtime.Object,
+	additionalObjects ...client.Object,
 ) {
 	filePath := path.Join("../../../config/recipes/beats", fileName)
 	namespace := test.Ctx().ManagedNamespace(0)

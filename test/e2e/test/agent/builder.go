@@ -21,8 +21,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/rand"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -34,7 +34,7 @@ type Builder struct {
 	Agent              agentv1alpha1.Agent
 	Validations        []ValidationFunc
 	ValidationsOutputs []string
-	AdditionalObjects  []runtime.Object
+	AdditionalObjects  []k8sclient.Object
 
 	// PodTemplate points to the PodTemplate in spec.DaemonSet or spec.Deployment
 	PodTemplate *corev1.PodTemplateSpec
@@ -46,6 +46,22 @@ type Builder struct {
 func (b Builder) SkipTest() bool {
 	ver := version.MustParse(b.Agent.Spec.Version)
 	return version.SupportedAgentVersions.WithinRange(ver) != nil
+}
+
+// NewBuilderFromAgent creates an Agent builder from an existing Agent config. Sets all additional Builder fields
+// appropriately.
+func NewBuilderFromAgent(agent *agentv1alpha1.Agent) Builder {
+	var podTemplate *corev1.PodTemplateSpec
+	if agent.Spec.DaemonSet != nil {
+		podTemplate = &agent.Spec.DaemonSet.PodTemplate
+	} else if agent.Spec.Deployment != nil {
+		podTemplate = &agent.Spec.Deployment.PodTemplate
+	}
+
+	return Builder{
+		Agent:       *agent,
+		PodTemplate: podTemplate,
+	}
 }
 
 func NewBuilder(name string) Builder {
@@ -256,12 +272,12 @@ func (b Builder) WithConfigRef(secretName string) Builder {
 	return b
 }
 
-func (b Builder) WithObjects(objs ...runtime.Object) Builder {
+func (b Builder) WithObjects(objs ...k8sclient.Object) Builder {
 	b.AdditionalObjects = append(b.AdditionalObjects, objs...)
 	return b
 }
 
-func (b Builder) RuntimeObjects() []runtime.Object {
+func (b Builder) RuntimeObjects() []k8sclient.Object {
 	return append(b.AdditionalObjects, &b.Agent)
 }
 
